@@ -1,12 +1,53 @@
 # Instalação
 
-Este comando realiza a instalação completa e aplica as primeiras camadas de segurança.
+Esta instalação foi dividida em 8 comandos para facilitar a execução. Copie e cole cada comando em sequência.
 
-Copie e cole:
+## Comando 1: Atualização do Sistema
 
 ```bash
-USER_WEB=$(whoami); sudo apt update && sudo DEBIAN_FRONTEND=noninteractive apt install -y nginx php-fpm php-sqlite3 sqlite3 git unzip curl ufw php-mbstring php-xml php-bcmath php-gd php-intl php-curl php-opcache php-mysql php-readline php-gmp php-tokenizer php-fileinfo php-redis fail2ban unattended-upgrades && sudo ufw allow OpenSSH && sudo ufw allow 'Nginx Full' && sudo ufw --force enable && sudo chown -R $USER_WEB:www-data /var/www/html && sudo chmod -R 775 /var/www/html && printf "limit_req_zone \$binary_remote_addr zone=general:10m rate=15r/s;\nlimit_req_zone \$binary_remote_addr zone=login:10m rate=5r/m;\nlimit_conn_zone \$binary_remote_addr zone=addr:10m;" | sudo tee /etc/nginx/conf.d/rate_limit.conf > /dev/null && printf "server { listen 80 default_server; root /var/www/html; index index.php index.html; server_name _; server_tokens off; client_max_body_size 64M; limit_req zone=general burst=20 nodelay; limit_conn addr 10; location ~ /\.git { deny all; } location / { try_files \$uri \$uri/ =404; } location ~ \.php$ { include snippets/fastcgi-php.conf; fastcgi_pass unix:%s; } }" "$(ls /run/php/php*-fpm.sock | head -n 1)" | sudo tee /etc/nginx/sites-available/default > /dev/null && printf "[DEFAULT]\nbantime = 3600\nfindtime = 600\nmaxretry = 5\n\n[sshd]\nenabled = true\nport = ssh\nlogpath = /var/log/auth.log\n\n[nginx-http-auth]\nenabled = true\nfilter = nginx-http-auth\nport = http,https\nlogpath = /var/log/nginx/error.log\n\n[nginx-limit-req]\nenabled = true\nfilter = nginx-limit-req\nport = http,https\nlogpath = /var/log/nginx/error.log\nmaxretry = 10" | sudo tee /etc/fail2ban/jail.local > /dev/null && sudo systemctl enable fail2ban && sudo systemctl restart fail2ban && sudo dpkg-reconfigure -plow unattended-upgrades && sudo systemctl restart nginx && echo "Stack Segura Instalada. Usuário: $USER_WEB | Firewall UFW + Fail2Ban ativos | Rate Limiting configurado"
+sudo apt update && echo "✓ Sistema atualizado"
+```
 
+## Comando 2: Instalação do Servidor Web (Nginx + PHP + SQLite)
+
+```bash
+sudo apt install -y nginx php-fpm php-sqlite3 sqlite3 && echo "✓ Nginx, PHP-FPM e SQLite3 instalados"
+```
+
+## Comando 3: Instalação de Extensões PHP
+
+```bash
+sudo apt install -y php-mbstring php-xml php-bcmath php-gd php-intl php-curl php-opcache php-mysql php-readline php-gmp php-redis && echo "✓ Extensões PHP instaladas"
+```
+
+## Comando 4: Instalação de Ferramentas de Desenvolvimento
+
+```bash
+sudo apt install -y git unzip curl && echo "✓ Git, Unzip e Curl instalados"
+```
+
+## Comando 5: Instalação de Pacotes de Segurança + Permissões
+
+```bash
+USER_WEB=$(whoami); sudo apt install -y ufw fail2ban unattended-upgrades && sudo chown -R $USER_WEB:www-data /var/www/html && sudo chmod -R 775 /var/www/html && echo "✓ Pacotes de segurança instalados e permissões configuradas"
+```
+
+## Comando 6: Configuração do Firewall (UFW)
+
+```bash
+sudo ufw allow OpenSSH && sudo ufw allow 'Nginx Full' && sudo ufw --force enable && echo "✓ Firewall UFW configurado e ativado"
+```
+
+## Comando 7: Configuração do Fail2Ban + Atualizações Automáticas
+
+```bash
+printf "[DEFAULT]\nbantime = 3600\nfindtime = 600\nmaxretry = 5\n\n[sshd]\nenabled = true\nport = ssh\nlogpath = /var/log/auth.log\n\n[nginx-http-auth]\nenabled = true\nfilter = nginx-http-auth\nport = http,https\nlogpath = /var/log/nginx/error.log\n\n[nginx-limit-req]\nenabled = true\nfilter = nginx-limit-req\nport = http,https\nlogpath = /var/log/nginx/error.log\nmaxretry = 10" | sudo tee /etc/fail2ban/jail.local > /dev/null && sudo systemctl enable fail2ban && sudo systemctl restart fail2ban && sudo dpkg-reconfigure -plow unattended-upgrades && echo "✓ Fail2Ban e atualizações automáticas configurados"
+```
+
+## Comando 8: Configuração do Nginx (Rate Limiting + Virtual Host)
+
+```bash
+printf "limit_req_zone \$binary_remote_addr zone=general:10m rate=15r/s;\nlimit_req_zone \$binary_remote_addr zone=login:10m rate=5r/m;\nlimit_conn_zone \$binary_remote_addr zone=addr:10m;" | sudo tee /etc/nginx/conf.d/rate_limit.conf > /dev/null && printf "server { listen 80 default_server; root /var/www/html; index index.php index.html; server_name _; server_tokens off; client_max_body_size 64M; limit_req zone=general burst=20 nodelay; limit_conn addr 10; location ~ /\.git { deny all; } location / { try_files \$uri \$uri/ =404; } location ~ \.php$ { include snippets/fastcgi-php.conf; fastcgi_pass unix:%s; } }" "$(ls /run/php/php*-fpm.sock | head -n 1)" | sudo tee /etc/nginx/sites-available/default > /dev/null && sudo systemctl restart nginx && echo "✓ Nginx configurado | Stack completa instalada!"
 ```
 
 ## O que será instalado:
@@ -14,7 +55,7 @@ USER_WEB=$(whoami); sudo apt update && sudo DEBIAN_FRONTEND=noninteractive apt i
 **Servidor Web e PHP:**
 - **Nginx** - Servidor web de alta performance
 - **PHP-FPM** - Interpretador PHP (Fast Process Manager)
-- **Extensoes PHP**: sqlite3, mbstring, xml, bcmath, gd, intl, curl, opcache, mysql, readline, gmp, tokenizer, fileinfo, redis
+- **Extensoes PHP**: sqlite3, mbstring, xml, bcmath, gd, intl, curl, opcache, mysql, readline, gmp, redis
 
 **Banco de Dados:**
 - **SQLite3** - Banco de dados leve e sem necessidade de servidor separado

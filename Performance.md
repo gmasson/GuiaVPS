@@ -46,7 +46,7 @@ echo '# Adicione este bloco dentro do server {} do seu site em /etc/nginx/sites-
 #     expires 1y;
 #     add_header Cache-Control "public, immutable";
 #     access_log off;
-# }' && echo "\n✓ Copie o bloco acima para o arquivo de configuração do seu site."
+# }' && echo "" && echo "✓ Copie o bloco acima para o arquivo de configuração do seu site."
 
 ```
 
@@ -61,11 +61,36 @@ printf 'map \$sent_http_content_type \$expires {\n    default                   
 
 ## Otimizar OPcache do PHP
 
-Melhora performance do PHP em até 3x.
+Melhora performance do PHP em até 3x configurando cache de bytecode.
+
+### Comando 1: Aumentar Memória do OPcache
 
 ```bash
-INI_FILE=$(php --ini | grep "Loaded Configuration" | sed -e "s|.*:\s*||"); sudo sed -i 's/;opcache.memory_consumption=.*/opcache.memory_consumption=256/' "$INI_FILE" && sudo sed -i 's/;opcache.interned_strings_buffer=.*/opcache.interned_strings_buffer=16/' "$INI_FILE" && sudo sed -i 's/;opcache.max_accelerated_files=.*/opcache.max_accelerated_files=10000/' "$INI_FILE" && sudo sed -i 's/;opcache.revalidate_freq=.*/opcache.revalidate_freq=60/' "$INI_FILE" && sudo systemctl restart php*-fpm && echo "✓ OPcache otimizado."
+INI_FILE=$(php --ini | grep "Loaded Configuration" | sed -e "s|.*:\s*||"); sudo sed -i 's/;opcache.memory_consumption=.*/opcache.memory_consumption=256/' "$INI_FILE" && echo "✓ Memória OPcache: 256MB"
+```
 
+### Comando 2: Buffer de Strings Internas
+
+```bash
+INI_FILE=$(php --ini | grep "Loaded Configuration" | sed -e "s|.*:\s*||"); sudo sed -i 's/;opcache.interned_strings_buffer=.*/opcache.interned_strings_buffer=16/' "$INI_FILE" && echo "✓ Buffer de strings: 16MB"
+```
+
+### Comando 3: Limite de Arquivos em Cache
+
+```bash
+INI_FILE=$(php --ini | grep "Loaded Configuration" | sed -e "s|.*:\s*||"); sudo sed -i 's/;opcache.max_accelerated_files=.*/opcache.max_accelerated_files=10000/' "$INI_FILE" && echo "✓ Máximo de arquivos: 10000"
+```
+
+### Comando 4: Frequência de Revalidação
+
+```bash
+INI_FILE=$(php --ini | grep "Loaded Configuration" | sed -e "s|.*:\s*||"); sudo sed -i 's/;opcache.revalidate_freq=.*/opcache.revalidate_freq=60/' "$INI_FILE" && echo "✓ Revalidação: 60 segundos"
+```
+
+### Comando 5: Aplicar Configurações
+
+```bash
+sudo systemctl restart php*-fpm && echo "✓ OPcache otimizado e aplicado"
 ```
 
 ## Limitar Workers do Nginx (Para VPS com pouca RAM)

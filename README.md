@@ -1,74 +1,122 @@
-# GuiaVPS v0.1
+# GuiaVPS
 
-Guia completo de comandos para configurar e gerenciar servidores web seguros com Nginx + PHP-FPM + SQLite.
+Este guia foi criado para ajudar desenvolvedores iniciantes a configurarem seus próprios servidores web de forma segura e eficiente. Os comandos estão organizados por tópicos e podem ser executados em sequência, eliminando a necessidade de conhecimento avançado em administração de servidores.
 
-**Compatibilidade:** Ubuntu 20.04 LTS, 22.04 LTS e 24.04 LTS  
-**Provedores sugeridos:** AWS EC2, Google Cloud, Oracle Cloud, DigitalOcean, Hostinger, Vultr, Linode
+**Stack:** Nginx + PHP-FPM + SQLite  
+**Sistema:** Ubuntu 20.04 LTS, 22.04 LTS e 24.04 LTS
 
-Este projeto educacional foi criado para facilitar a configuração de servidores web seguros. Ele contém comandos organizados por tópicos, permitindo que você configure e gerencie seu servidor de forma eficiente.
+## Documentacao
 
-> **DICA:** Use `Ctrl+F` para buscar comandos específicos.
+| Topico | Descricao |
+|--------|-----------|
+| [Instalacao](Instalação.md) | Instalacao completa da stack |
+| [Seguranca](Segurança.md) | Headers HTTP, blindagem PHP, SSH e Fail2Ban |
+| [Dominios](Domínios.md) | Virtual Hosts e certificados SSL |
+| [Git](git.md) | Deploy e atualizacao de projetos |
+| [Backups](Backups.md) | Backup manual e automatico com Cron |
+| [Performance](Performance.md) | Swap, Gzip, cache e otimizacao OPcache |
+| [Monitoramento](Monitoramento.md) | Logs, recursos e status dos servicos |
+| [Utilitarios](Utilitários.md) | Gerenciamento de sites e solucao de problemas |
 
-## Índice
+## Pre-requisitos
 
-- [Instalação](Instalação.md)
-- [Segurança](Segurança.md)
-- [Git](git.md)
-- [Domínios](Domínios.md)
-- [Backups](Backups.md)
-- [Performance](Performance.md)
-- [Monitoramento](Monitoramento.md)
-- [Utilitários](Utilitários.md)
-
----
-
-## Pré-requisitos
-
-- Acesso SSH ao servidor VPS
-- Conhecimento básico de linha de comando Linux
-- Ubuntu instalado (versões suportadas acima)
+- Servidor VPS com Ubuntu instalado
+- Acesso SSH ao servidor
+- Conhecimento basico de terminal Linux
 
 ## Como Usar
 
-1. Clone ou baixe este repositório.
-2. Navegue pelos arquivos .md conforme o tópico desejado.
-3. Copie e execute os comandos na sequência que precisar em seu servidor.
+1. Clone, baixe ou somente deixe aberto este repositorio para consulta rápida
+2. Acesse o servidor via SSH
+3. Siga os comandos do arquivo [Instalacao](Instalação.md) para configurar a stack
+4. Consulte os demais arquivos conforme necessidade
 
-> **Atenção:** Sempre faça backup antes de executar comandos que alterem configurações do sistema.
+**Importante:** Execute os comandos na ordem apresentada. Sempre faca backup antes de alterar configuracoes do sistema.
 
----
+**Dica:** Use `Ctrl+F` para localizar comandos especificos dentro dos arquivos.
 
-## Notas
+## Configuracao por Provedor
 
-Antes de rodar os comandos, verifique as regras de Firewall do painel da sua hospedagem.
+Antes de iniciar, verifique as configuracoes de firewall no painel do seu provedor.
 
-### AWS (EC2)
-* Usuário padrão: ubuntu
-* Firewall: Edite o "Security Group" associado à instância.
-* Portas para liberar: 80 (HTTP), 443 (HTTPS), 22 (SSH).
+### AWS EC2
 
-### Google Cloud Platform (Compute Engine)
-* Usuário padrão: Depende do seu login (use 'sudo' sempre).
-* Firewall: Menu "VPC Network" > "Firewall". Crie uma regra liberando tcp:80 e tcp:443 com a tag "http-server".
+| Configuracao | Valor |
+|--------------|-------|
+| Usuario padrao | `ubuntu` |
+| Firewall | Security Group da instancia |
+| Portas | 22 (SSH), 80 (HTTP), 443 (HTTPS) |
+
+### Google Cloud Platform
+
+| Configuracao | Valor |
+|--------------|-------|
+| Usuario padrao | Seu usuario do Google (use `sudo`) |
+| Firewall | VPC Network > Firewall > Criar regra |
+| Portas | tcp:80, tcp:443 com tag `http-server` |
 
 ### Oracle Cloud
-* Usuário padrão: ubuntu (para imagens Ubuntu) ou opc (Oracle Linux).
-* Firewall (Painel): Menu "Virtual Cloud Networks" > "Security Lists". Adicione Ingress Rules para 80 e 443.
-* Firewall (Sistema): A Oracle bloqueia portas no iptables do sistema. Rode este comando extra antes de instalar a stack:
-    `sudo iptables -F && sudo netfilter-persistent save`
-* **ATENÇÃO**: Este comando limpa TODAS as regras de firewall. Use apenas em servidores novos.
 
-### DigitalOcean / Hostinger / Vultr
-* Usuário padrão: root
-* Firewall: Geralmente vem liberado. Se usar UFW, rode `ufw allow 80/tcp`.
-* Nota: Como você já é root, o comando 'sudo' é opcional, mas os scripts abaixo funcionam mesmo assim.
+| Configuracao | Valor |
+|--------------|-------|
+| Usuario padrao | `ubuntu` ou `opc` (Oracle Linux) |
+| Firewall Painel | Virtual Cloud Networks > Security Lists |
+| Firewall Sistema | Requer liberacao manual do iptables |
 
----
+**Atencao:** A Oracle bloqueia portas no iptables do sistema. Execute antes da instalacao:
 
-## Contribuição
+```bash
+sudo iptables -F && sudo netfilter-persistent save
+```
 
-Contribuições são bem-vindas! Sinta-se à vontade para abrir issues ou pull requests.
+Este comando limpa todas as regras de firewall. Use apenas em servidores novos.
 
-## Licença
+### DigitalOcean, Hostinger, Vultr, Linode
 
-Este projeto está licenciado sob a [MIT License](LICENSE.md).
+| Configuracao | Valor |
+|--------------|-------|
+| Usuario padrao | `root` |
+| Firewall | Geralmente liberado por padrao |
+| Nota | Comando `sudo` e opcional |
+
+## O que sera instalado
+
+**Servidor Web**
+- Nginx (servidor web de alta performance)
+- PHP-FPM (interpretador PHP)
+- Extensoes PHP: sqlite3, mbstring, xml, bcmath, gd, intl, curl, opcache, mysql, readline, gmp, redis
+
+**Banco de Dados**
+- SQLite3 (banco de dados leve e sem servidor separado)
+
+**Ferramentas**
+- Git, Unzip, Curl
+
+**Seguranca**
+- UFW (firewall simplificado)
+- Fail2Ban (protecao contra forca bruta)
+- Unattended-Upgrades (atualizacoes automaticas)
+
+## O que sera configurado
+
+- Firewall bloqueando todas as portas exceto SSH, HTTP e HTTPS
+- Rate limiting para prevenir ataques DDoS (15 req/s geral, 5 req/min login)
+- Fail2Ban monitorando SSH e Nginx
+- Permissoes seguras para arquivos web
+- Virtual Host padrao em `/var/www/html`
+
+## Contribuicao
+
+Contribuicoes sao bem-vindas. Para contribuir:
+
+1. Faca um fork do projeto
+2. Crie uma branch para sua feature (`git checkout -b feature/nova-feature`)
+3. Commit suas alteracoes (`git commit -m 'Adiciona nova feature'`)
+4. Push para a branch (`git push origin feature/nova-feature`)
+5. Abra um Pull Request
+
+Para reportar bugs ou sugerir melhorias, abra uma issue.
+
+## Licenca
+
+Este projeto esta licenciado sob a [MIT License](LICENSE).

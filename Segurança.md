@@ -1,45 +1,87 @@
 # Segurança
 
-## HTTP Headers
+## HTTP Headers - Segurança Básica
 
-Injeta cabeçalhos de segurança globais no Nginx. Protege contra Clickjacking, XSS e Sniffing de MIME-Type.
+Configura cabeçalhos de segurança essenciais (X-Frame-Options, X-Content-Type-Options, Referrer-Policy).
 
-> **NOTA:** O CSP (Content-Security-Policy) está restritivo. Se usar CDNs externos (Google Fonts, jQuery, etc), edite o arquivo após criar ou use o comando alternativo abaixo.
+### Comando 1: Headers Básicos de Proteção
 
 ```bash
-printf 'add_header X-Frame-Options "SAMEORIGIN" always;\nadd_header X-Content-Type-Options "nosniff" always;\nadd_header Referrer-Policy "strict-origin-when-cross-origin" always;\nadd_header Content-Security-Policy "default-src \'self\'; script-src \'self\'; style-src \'self\' \'unsafe-inline\'; img-src \'self\' data: https:; font-src \'self\' data:; connect-src \'self\'; frame-ancestors \'self\';" always;\nadd_header Permissions-Policy "geolocation=(), microphone=(), camera=()" always;' | sudo tee /etc/nginx/conf.d/security_headers.conf && sudo systemctl restart nginx && echo "✓ Cabeçalhos de Segurança HTTP aplicados (CSP restritivo)."
-
+printf 'add_header X-Frame-Options "SAMEORIGIN" always;\nadd_header X-Content-Type-Options "nosniff" always;\nadd_header Referrer-Policy "strict-origin-when-cross-origin" always;' | sudo tee /etc/nginx/conf.d/security_headers.conf && echo "✓ Headers básicos de segurança aplicados"
 ```
 
-## CSP Permissivo (Para sites com CDNs externos)
+### Comando 2: Content Security Policy (CSP Restritivo)
 
-Use este se seu site carrega recursos de CDNs como Google Fonts, cdnjs, unpkg, etc.
+Adiciona CSP restritivo. Use apenas se seu site NÃO usa CDNs externos.
 
 ```bash
-printf 'add_header X-Frame-Options "SAMEORIGIN" always;\nadd_header X-Content-Type-Options "nosniff" always;\nadd_header Referrer-Policy "strict-origin-when-cross-origin" always;\nadd_header Content-Security-Policy "default-src \'self\'; script-src \'self\' \'unsafe-inline\' \'unsafe-eval\' https://cdnjs.cloudflare.com https://unpkg.com https://cdn.jsdelivr.net; style-src \'self\' \'unsafe-inline\' https://fonts.googleapis.com https://cdnjs.cloudflare.com; img-src \'self\' data: https:; font-src \'self\' data: https://fonts.gstatic.com; connect-src \'self\' https:; frame-ancestors \'self\';" always;\nadd_header Permissions-Policy "geolocation=(), microphone=(), camera=()" always;' | sudo tee /etc/nginx/conf.d/security_headers.conf && sudo systemctl restart nginx && echo "✓ Cabeçalhos de Segurança HTTP aplicados (CSP permissivo para CDNs)."
+printf '\nadd_header Content-Security-Policy "default-src \'self\'; script-src \'self\'; style-src \'self\' \'unsafe-inline\'; img-src \'self\' data: https:; font-src \'self\' data:; connect-src \'self\'; frame-ancestors \'self\';" always;' | sudo tee -a /etc/nginx/conf.d/security_headers.conf && echo "✓ CSP restritivo adicionado"
+```
 
+### Comando 2 (Alternativa): CSP Permissivo para CDNs
+
+Use este ao invés do anterior se usar Google Fonts, cdnjs, unpkg, etc.
+
+```bash
+printf '\nadd_header Content-Security-Policy "default-src \'self\'; script-src \'self\' \'unsafe-inline\' \'unsafe-eval\' https://cdnjs.cloudflare.com https://unpkg.com https://cdn.jsdelivr.net; style-src \'self\' \'unsafe-inline\' https://fonts.googleapis.com https://cdnjs.cloudflare.com; img-src \'self\' data: https:; font-src \'self\' data: https://fonts.gstatic.com; connect-src \'self\' https:; frame-ancestors \'self\';" always;' | sudo tee -a /etc/nginx/conf.d/security_headers.conf && echo "✓ CSP permissivo para CDNs adicionado"
+```
+
+### Comando 3: Permissions Policy
+
+Bloqueia acesso a recursos do dispositivo (localização, microfone, câmera).
+
+```bash
+printf '\nadd_header Permissions-Policy "geolocation=(), microphone=(), camera=()" always;' | sudo tee -a /etc/nginx/conf.d/security_headers.conf && echo "✓ Permissions Policy adicionado"
+```
+
+### Comando 4: Aplicar Configurações
+
+```bash
+sudo systemctl restart nginx && echo "✓ Todos os headers de segurança aplicados"
 ```
 
 ## Blindagem PHP
 
-Edita o php.ini para desativar funções que permitem a execução de comandos do sistema operacional via script (como exec, system, shell_exec). Impede que uma vulnerabilidade no site dê acesso total ao servidor.
+Configura o php.ini para desativar funções perigosas e otimizar segurança.
 
-> **IMPORTANTE:** Se usar Laravel Horizon, Laravel Queue, Symfony Process ou similares, use a versão alternativa abaixo que mantém funções `pcntl_*` necessárias para workers em background.
+> **IMPORTANTE:** Se usar Laravel Horizon/Queue ou Symfony Process, use a versão alternativa do Comando 1.
 
-### Versão Segura Padrão (Recomendada)
+### Comando 1: Desativar Funções Perigosas (Versão Segura)
 
 ```bash
-INI_FILE=$(php --ini | grep "Loaded Configuration" | sed -e "s|.*:\s*||"); sudo sed -i 's/disable_functions = .*/disable_functions = exec,passthru,shell_exec,system,proc_open,popen,curl_exec,curl_multi_exec,parse_ini_file,show_source,pcntl_exec,pcntl_fork,pcntl_signal,pcntl_waitpid,pcntl_wexitstatus,pcntl_wifexited,pcntl_wifsignaled,pcntl_wifstopped,pcntl_wstopsig,pcntl_wtermsig,pcntl_sigprocmask,pcntl_sigwaitinfo,pcntl_sigtimedwait,pcntl_get_last_error,pcntl_strerror,pcntl_async_signals,dl,symlink,link,pfsockopen,phpinfo/' "$INI_FILE" && sudo sed -i 's/;opcache.enable=1/opcache.enable=1/' "$INI_FILE" && sudo sed -i 's/expose_php = On/expose_php = Off/' "$INI_FILE" && sudo sed -i 's/upload_max_filesize = .*/upload_max_filesize = 64M/' "$INI_FILE" && sudo sed -i 's/post_max_size = .*/post_max_size = 64M/' "$INI_FILE" && sudo systemctl restart php*-fpm && echo "PHP Blindado: Funcoes perigosas desativadas + OPcache ativo + expose_php off."
-
+INI_FILE=$(php --ini | grep "Loaded Configuration" | sed -e "s|.*:\s*||"); sudo sed -i 's/disable_functions = .*/disable_functions = exec,passthru,shell_exec,system,proc_open,popen,curl_exec,curl_multi_exec,parse_ini_file,show_source,pcntl_exec,pcntl_fork,pcntl_signal,pcntl_waitpid,pcntl_wexitstatus,pcntl_wifexited,pcntl_wifsignaled,pcntl_wifstopped,pcntl_wstopsig,pcntl_wtermsig,pcntl_sigprocmask,pcntl_sigwaitinfo,pcntl_sigtimedwait,pcntl_get_last_error,pcntl_strerror,pcntl_async_signals,dl,symlink,link,pfsockopen,phpinfo/' "$INI_FILE" && echo "✓ Funções perigosas desativadas"
 ```
 
-### Versão para Laravel/Frameworks Modernos (Com pcntl_* habilitado)
+### Comando 1 (Alternativa): Para Laravel/Frameworks com Workers
 
-Use esta versão se precisar de filas/workers em background:
+Use este ao invés do anterior se precisar de filas/workers em background.
 
 ```bash
-INI_FILE=$(php --ini | grep "Loaded Configuration" | sed -e "s|.*:\s*||"); sudo sed -i 's/disable_functions = .*/disable_functions = exec,passthru,shell_exec,system,proc_open,popen,curl_exec,curl_multi_exec,parse_ini_file,show_source,dl,symlink,link,pfsockopen,phpinfo/' "$INI_FILE" && sudo sed -i 's/;opcache.enable=1/opcache.enable=1/' "$INI_FILE" && sudo sed -i 's/expose_php = On/expose_php = Off/' "$INI_FILE" && sudo sed -i 's/upload_max_filesize = .*/upload_max_filesize = 64M/' "$INI_FILE" && sudo sed -i 's/post_max_size = .*/post_max_size = 64M/' "$INI_FILE" && sudo systemctl restart php*-fpm && echo "PHP Blindado (com pcntl): Funcoes perigosas desativadas + OPcache ativo + expose_php off."
+INI_FILE=$(php --ini | grep "Loaded Configuration" | sed -e "s|.*:\s*||"); sudo sed -i 's/disable_functions = .*/disable_functions = exec,passthru,shell_exec,system,proc_open,popen,curl_exec,curl_multi_exec,parse_ini_file,show_source,dl,symlink,link,pfsockopen,phpinfo/' "$INI_FILE" && echo "✓ Funções perigosas desativadas (pcntl mantido)"
+```
 
+### Comando 2: Ativar OPcache
+
+```bash
+INI_FILE=$(php --ini | grep "Loaded Configuration" | sed -e "s|.*:\s*||"); sudo sed -i 's/;opcache.enable=1/opcache.enable=1/' "$INI_FILE" && echo "✓ OPcache ativado"
+```
+
+### Comando 3: Ocultar Versão do PHP
+
+```bash
+INI_FILE=$(php --ini | grep "Loaded Configuration" | sed -e "s|.*:\s*||"); sudo sed -i 's/expose_php = On/expose_php = Off/' "$INI_FILE" && echo "✓ Versão do PHP ocultada"
+```
+
+### Comando 4: Aumentar Limites de Upload
+
+```bash
+INI_FILE=$(php --ini | grep "Loaded Configuration" | sed -e "s|.*:\s*||"); sudo sed -i 's/upload_max_filesize = .*/upload_max_filesize = 64M/' "$INI_FILE" && sudo sed -i 's/post_max_size = .*/post_max_size = 64M/' "$INI_FILE" && echo "✓ Limites de upload aumentados para 64M"
+```
+
+### Comando 5: Aplicar Configurações
+
+```bash
+sudo systemctl restart php*-fpm && echo "✓ PHP blindado e reiniciado"
 ```
 
 ## Alterar Porta SSH (Anti-Scanner)
